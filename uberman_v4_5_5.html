@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Uberman v4.5.5 — Matrix ↔ Constellation Dashboard</title>
+  <style>
+    body { background: black; margin: 0; font-family: monospace; color: #ccc; }
+    canvas { display: block; }
+    h3 { margin-top: 0; }
+    .overlay {
+      position: fixed; background: rgba(0,0,0,0.85);
+      border: 1px solid #333; padding: 12px;
+      font-size: 13px; z-index: 20;
+    }
+    button { background:#111; color:#9f9; border:1px solid #333; padding:6px 10px; margin:2px; cursor:pointer; }
+    button:hover { background:#0a0a0a; }
+    .commit-card {
+      background: #fff; color:#000; margin-bottom: 1em; padding: 1em 1.2em;
+      border-radius: 7px; box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+    .commit-message { font-size: 1.1em; margin: 0 0 .5em 0; }
+    .commit-meta { font-size: .95em; color: #555; margin-bottom: .4em; }
+    a.button { background: #24292f; color: white; padding: 0.4em 0.9em; text-decoration: none; border-radius: 4px;}
+    a.button:hover { background: #444; }
+  </style>
+</head>
+<body>
+
+  <!-- Matrix Rain -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <!-- ConvoView -->
+  <div id="convoView" class="overlay" style="top:60px; right:20px; width:400px; height:70%; overflow-y:scroll; display:none;">
+    <h3 style="color:#66ff99;">ConvoView — Meaning Log</h3>
+    <div id="convoEntries"></div>
+  </div>
+
+  <!-- TimelineView -->
+  <div id="timelineView" class="overlay" style="top:60px; left:20px; width:400px; height:70%; overflow-y:scroll; display:none;">
+    <h3 style="color:#33ccff;">TimelineView — Evolution Log</h3>
+    <div id="timelineEntries"></div>
+  </div>
+
+  <!-- ConstellationView -->
+  <div id="constellationView" class="overlay" style="top:60px; left:50%; transform:translateX(-50%); width:800px; height:500px; display:none;">
+    <h3 style="color:#cc99ff;">ConstellationView — Meaning Map</h3>
+    <canvas id="constellationCanvas" width="760" height="440" style="background:#111;"></canvas>
+  </div>
+
+  <!-- Commit Viewer -->
+  <div id="commitView" class="overlay" style="bottom:20px; left:20px; width:600px; height:300px; overflow-y:scroll; display:none; background:#f5f5f5; color:#000;">
+    <h3 style="color:#000;">Recent Commits for <code>uberman_v4_5_5.html</code></h3>
+    <div id="commits">Loading...</div>
+  </div>
+
+  <!-- Toggle Buttons -->
+  <div id="viewToggle" style="position:fixed; top:20px; left:20px; z-index:30;">
+    <button onclick="showMatrix()">Matrix Rain</button>
+    <button onclick="showConstellation()">Constellation Dashboard</button>
+  </div>
+  <div id="overlayToggle" style="position:fixed; top:60px; right:20px; z-index:30;">
+    <button onclick="toggleOverlay('convoView')">ConvoView</button>
+    <button onclick="toggleOverlay('timelineView')">TimelineView</button>
+    <button onclick="toggleOverlay('constellationView')">ConstellationView</button>
+    <button onclick="toggleOverlay('commitView')">Commit Viewer</button>
+  </div>
+
+  <!-- Slider Panel -->
+  <div id="sliderPanel" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; padding:10px; z-index:30;">
+    <label style="color:#9f9;">Emotion:</label>
+    <input type="range" id="emotionSlider" min="0.5" max="1.5" step="0.01" value="0.85">
+    <span id="emotionValue" style="color:#9f9;">0.85</span>
+    <br>
+    <label style="color:#9f9;">Curiosity:</label>
+    <input type="range" id="curiositySlider" min="0.5" max="1.5" step="0.01" value="0.90">
+    <span id="curiosityValue" style="color:#9f9;">0.90</span>
+  </div>
+
+  <script>
+    // Overlay toggle
+    function toggleOverlay(id) {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    }
+
+    // Slider listeners
+    document.getElementById('emotionSlider').addEventListener('input', e => {
+      const val = parseFloat(e.target.value);
+      document.getElementById('emotionValue').textContent = val.toFixed(2);
+    });
+    document.getElementById('curiositySlider').addEventListener('input', e => {
+      const val = parseFloat(e.target.value);
+      document.getElementById('curiosityValue').textContent = val.toFixed(2);
+    });
+
+    // Helper to get current slider values
+    function getCurrentDrivers() {
+      return {
+        emotion: parseFloat(document.getElementById('emotionSlider').value),
+        curiosity: parseFloat(document.getElementById('curiositySlider').value)
+      };
+    }
+
+    // Matrix ↔ Constellation toggles
+    function showMatrix() {
+      document.getElementById('matrixCanvas').style.display = 'block';
+      document.getElementById('constellationView').style.display = 'none';
+    }
+    function showConstellation() {
+      document.getElementById('matrixCanvas').style.display = 'none';
+      document.getElementById('constellationView').style.display = 'block';
+    }
+
+    // Commit Viewer fetch
+    fetch('https://api.github.com/repos/Samjackal-a11y/uberman-matrix-view2/commits?path=uberman_v4_5_5.html&per_page=5')
+      .then(response => response.json())
+      .then(commits => {
+        document.getElementById('commits').innerHTML = commits.map(commit => `
+          <div class="commit-card">
+            <div class="commit-message">${commit.commit.message}</div>
+            <div class="commit-meta">
+              <strong>Author:</strong> ${commit.commit.author.name} &mdash;
+              <strong>Date:</strong> ${new Date(commit.commit.author.date).toLocaleString()}
+            </div>
+            <a href="${commit.html_url}" class="button" target="_blank">View Commit</a>
+          </div>
+        `).join('');
+      })
+      .catch(error => {
+        document.getElementById('commits').innerHTML = 'Error loading commits.';
+        console.error(error);
+      });
+  </script> // Slider listeners
+document.getElementById('emotionSlider').addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  document.getElementById('emotionValue').textContent = val.toFixed(2);
+});
+document.getElementById('curiositySlider').addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  document.getElementById('curiosityValue').textContent = val.toFixed(2);
+});
+
+// Helper to get current slider values
+function getCurrentDrivers() {
+  return {
+    emotion: parseFloat(document.getElementById('emotionSlider').value),
+    curiosity: parseFloat(document.getElementById('curiositySlider').value)
+  };
+}
+
+</body> <!-- Slider Panel -->
+<div id="sliderPanel" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; padding:10px; z-index:30;">
+  <label style="color:#9f9;">Emotion:</label>
+  <input type="range" id="emotionSlider" min="0.5" max="1.5" step="0.01" value="0.85">
+  <span id="emotionValue" style="color:#9f9;">0.85</span>
+  <br>
+  <label style="color:#9f9;">Curiosity:</label>
+  <input type="range" id="curiositySlider" min="0.5" max="1.5" step="0.01" value="0.90">
+  <span id="curiosityValue" style="color:#9f9;">0.90</span>
+  <br>
+  <!-- Button to log current slider values -->
+  <button onclick="recordEvolution('slider-test', getCurrentDrivers(), 'Testing live slider values', 'debug')">Log Sliders</button>
+</div>
+
+</html>
