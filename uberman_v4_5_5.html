@@ -1,22 +1,157 @@
-<script>
-  "use strict";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Uberman v4.5.5 — Performance-Safe Dashboard</title>
+  <style>
+    body { background: black; margin: 0; font-family: monospace; color: #ccc; }
+    canvas { display: block; }
+    h3 { margin-top: 0; }
+    .overlay {
+      position: fixed; background: rgba(0,0,0,0.85);
+      border: 1px solid #333; padding: 12px;
+      font-size: 13px; z-index: 20;
+    }
+    button { background:#111; color:#9f9; border:1px solid #333; padding:6px 10px; margin:2px; cursor:pointer; }
+    button:hover { background:#0a0a0a; }
+    .commit-card {
+      background: #fff; color:#000; margin-bottom: 1em; padding: 1em 1.2em;
+      border-radius: 7px; box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+    .commit-message { font-size: 1.1em; margin: 0 0 .5em 0; }
+    .commit-meta { font-size: .95em; color: #555; margin-bottom: .4em; }
+    a.button { background: #24292f; color: white; padding: 0.4em 0.9em; text-decoration: none; border-radius: 4px;}
+    a.button:hover { background: #444; }
+  </style>
+</head>
+<body>
 
-  // Overlay toggle
-  function toggleOverlay(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-  }
+  <!-- Matrix Rain -->
+  <canvas id="matrixCanvas"></canvas>
 
-  // Slider listeners
-  document.getElementById('emotionSlider').addEventListener('input', e => {
-    const val = parseFloat(e.target.value);
-    document.getElementById('emotionValue').textContent = val.toFixed(2);
-  });
-  document.getElementById('curiositySlider').addEventListener('input', e => {
-    const val = parseFloat(e.target.value);
-    document.getElementById('curiosityValue').textContent = val.toFixed(2);
-  });
+  <!-- ConstellationView -->
+  <div id="constellationView" class="overlay" style="top:60px; left:50%; transform:translateX(-50%); width:800px; height:500px; display:none;">
+    <h3 style="color:#cc99ff;">ConstellationView — Meaning Map</h3>
+    <canvas id="constellationCanvas" width="760" height="440" style="background:#111;"></canvas>
+  </div>
 
-  // Helpers and the rest of your code...
-</script>
+  <!-- Commit Viewer -->
+  <div id="commitView" class="overlay" style="bottom:20px; left:20px; width:600px; height:300px; overflow-y:scroll; display:none; background:#f5f5f5; color:#000;">
+    <h3 style="color:#000;">Recent Commits for <code>uberman_v4_5_5.html</code></h3>
+    <div id="commits">Loading...</div>
+  </div>
+
+  <!-- Toggle Buttons -->
+  <div id="viewToggle" style="position:fixed; top:20px; left:20px; z-index:30;">
+    <button onclick="showMatrix()">Matrix Rain</button>
+    <button onclick="showConstellation()">Constellation Dashboard</button>
+    <button onclick="toggleOverlay('commitView')">Commit Viewer</button>
+  </div>
+
+  <!-- Slider Panel -->
+  <div id="sliderPanel" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; padding:10px; z-index:30;">
+    <label style="color:#9f9;">Emotion:</label>
+    <input type="range" id="emotionSlider" min="0.5" max="1.5" step="0.01" value="0.85">
+    <span id="emotionValue" style="color:#9f9;">0.85</span>
+    <br>
+    <label style="color:#9f9;">Curiosity:</label>
+    <input type="range" id="curiositySlider" min="0.5" max="1.5" step="0.01" value="0.90">
+    <span id="curiosityValue" style="color:#9f9;">0.90</span>
+    <br>
+    <button onclick="recordEvolution('v4.5.5-slider', getCurrentDrivers(), 'Testing slider values', 'debug')">Log Sliders</button>
+  </div>
+
+  <!-- Ethics Footer -->
+  <div style="position:fixed; bottom:5px; right:10px; font-size:12px; z-index:40;">
+    <a href="https://sites.google.com/view/uberman-blueprint--ethics/license-ethics" target="_blank" style="color:#9f9; text-decoration:none;">
+      📜 Ethics & License
+    </a>
+  </div>
+
+  <script>
+    "use strict";
+
+    // Overlay toggle
+    function toggleOverlay(id) {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    }
+
+    // Slider listeners
+    const emotionSlider = document.getElementById('emotionSlider');
+    const curiositySlider = document.getElementById('curiositySlider');
+    emotionSlider.addEventListener('input', () => {
+      document.getElementById('emotionValue').textContent = parseFloat(emotionSlider.value).toFixed(2);
+    });
+    curiositySlider.addEventListener('input', () => {
+      document.getElementById('curiosityValue').textContent = parseFloat(curiositySlider.value).toFixed(2);
+    });
+
+    // Helper to get current slider values
+    function getCurrentDrivers() {
+      return {
+        emotion: parseFloat(emotionSlider.value),
+        curiosity: parseFloat(curiositySlider.value)
+      };
+    }
+
+    // Evolution logging
+    function recordEvolution(version, drivers, notes, category="technical") {
+      const entry = {
+        version,
+        time: new Date().toISOString(),
+        emotion: drivers.emotion,
+        curiosity: drivers.curiosity,
+        notes,
+        category
+      };
+      console.log("Logged:", entry);
+    }
+
+    // Matrix ↔ Constellation toggles
+    function showMatrix() {
+      document.getElementById('matrixCanvas').style.display = 'block';
+      document.getElementById('constellationView').style.display = 'none';
+    }
+    function showConstellation() {
+      document.getElementById('matrixCanvas').style.display = 'none';
+      document.getElementById('constellationView').style.display = 'block';
+    }
+
+    // Commit Viewer fetch
+    fetch('https://api.github.com/repos/Samjackal-a11y/uberman-matrix-view2/commits?path=uberman_v4_5_5.html&per_page=5')
+      .then(response => response.json())
+      .then(commits => {
+        document.getElementById('commits').innerHTML = commits.map(commit => `
+          <div class="commit-card">
+            <div class="commit-message">${commit.commit.message}</div>
+            <div class="commit-meta">
+              <strong>Author:</strong> ${commit.commit.author.name} &mdash;
+              <strong>Date:</strong> ${new Date(commit.commit.author.date).toLocaleString()}
+            </div>
+            <a href="${commit.html_url}" class="button" target="_blank">View Commit</a>
+          </div>
+        `).join('');
+      })
+      .catch(error => {
+        document.getElementById('commits').innerHTML = 'Error loading commits.';
+        console.error(error);
+      });
+
+    // Performance-safe animation loop
+    const matrixCanvas = document.getElementById('matrixCanvas');
+    const ctx = matrixCanvas.getContext('2d');
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
+
+    function drawMatrix() {
+      ctx.fillStyle = "rgba(0,0,0,0.1)";
+      ctx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);
+      // ... your matrix rain drawing logic here ...
+      requestAnimationFrame(drawMatrix);
+    }
+    drawMatrix();
+  </script>
+</body>
+</html>
