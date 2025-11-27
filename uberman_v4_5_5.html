@@ -74,6 +74,16 @@
     <label style="color:#9f9;">Curiosity:</label>
     <input type="range" id="curiositySlider" min="0.5" max="1.5" step="0.01" value="0.90">
     <span id="curiosityValue" style="color:#9f9;">0.90</span>
+    <br>
+    <!-- Button to log current slider values -->
+    <button onclick="recordEvolution('v4.5.5-slider', getCurrentDrivers(), 'Testing slider values', 'debug')">Log Sliders</button>
+  </div>
+
+  <!-- Ethics Footer -->
+  <div style="position:fixed; bottom:5px; right:10px; font-size:12px; z-index:40;">
+    <a href="https://sites.google.com/view/uberman-blueprint--ethics/license-ethics" target="_blank" style="color:#9f9; text-decoration:none;">
+      📜 Ethics & License
+    </a>
   </div>
 
   <script>
@@ -100,6 +110,19 @@
         emotion: parseFloat(document.getElementById('emotionSlider').value),
         curiosity: parseFloat(document.getElementById('curiositySlider').value)
       };
+    }
+
+    // Evolution logging
+    function recordEvolution(version, drivers, notes, category="technical") {
+      const entry = {
+        version,
+        time: new Date().toISOString(),
+        emotion: drivers.emotion,
+        curiosity: drivers.curiosity,
+        notes,
+        category
+      };
+      console.log("Logged:", entry);
     }
 
     // Matrix ↔ Constellation toggles
@@ -131,36 +154,3 @@
         document.getElementById('commits').innerHTML = 'Error loading commits.';
         console.error(error);
       });
-  </script> // Slider listeners
-document.getElementById('emotionSlider').addEventListener('input', e => {
-  const val = parseFloat(e.target.value);
-  document.getElementById('emotionValue').textContent = val.toFixed(2);
-});
-document.getElementById('curiositySlider').addEventListener('input', e => {
-  const val = parseFloat(e.target.value);
-  document.getElementById('curiosityValue').textContent = val.toFixed(2);
-});
-
-// Helper to get current slider values
-function getCurrentDrivers() {
-  return {
-    emotion: parseFloat(document.getElementById('emotionSlider').value),
-    curiosity: parseFloat(document.getElementById('curiositySlider').value)
-  };
-}
-
-</body> <!-- Slider Panel -->
-<div id="sliderPanel" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; padding:10px; z-index:30;">
-  <label style="color:#9f9;">Emotion:</label>
-  <input type="range" id="emotionSlider" min="0.5" max="1.5" step="0.01" value="0.85">
-  <span id="emotionValue" style="color:#9f9;">0.85</span>
-  <br>
-  <label style="color:#9f9;">Curiosity:</label>
-  <input type="range" id="curiositySlider" min="0.5" max="1.5" step="0.01" value="0.90">
-  <span id="curiosityValue" style="color:#9f9;">0.90</span>
-  <br>
-  <!-- Button to log current slider values -->
-  <button onclick="recordEvolution('slider-test', getCurrentDrivers(), 'Testing live slider values', 'debug')">Log Sliders</button>
-</div>
-
-</html>
